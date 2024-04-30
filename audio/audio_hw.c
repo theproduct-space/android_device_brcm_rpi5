@@ -87,7 +87,7 @@ struct alsa_stream_out {
 static int probe_pcm_out_card() {
     FILE *fp;
     char card_node[] = "/proc/asound/card0/id";
-    char card_id[64];
+    char card_id[16];
 
     char card_prop[PROPERTY_VALUE_MAX];
     property_get("persist.audio.device", card_prop, "");
