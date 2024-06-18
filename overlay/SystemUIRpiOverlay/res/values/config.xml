@@ -20,7 +20,7 @@
 
     <!-- The default tiles to display in QuickSettings -->
     <string name="quick_settings_tiles_default" translatable="false">
-        internet,bt,airplane,hotspot,dark,screenrecord
+        internet,bt,airplane,hotspot,dark,screenrecord,custom(com.android.permissioncontroller/.permission.service.v33.SafetyCenterQsTileService)
     </string>
 
 </resources>
