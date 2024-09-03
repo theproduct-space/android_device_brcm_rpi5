@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-VERSION=RaspberryVanillaAOSP14
+VERSION=RaspberryVanillaAOSP15
 DATE=$(date +%Y%m%d)
 IMGNAME=${VERSION}-${DATE}-rpi5.img
 IMGSIZE=7
