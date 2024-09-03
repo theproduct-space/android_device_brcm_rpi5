@@ -173,8 +173,7 @@ PRODUCT_PACKAGES += \
     libgbm_mesa_wrapper
 
 PRODUCT_PACKAGES += \
-    android.hardware.graphics.composer@2.4-service \
-    hwcomposer.drm
+    android.hardware.composer.hwc3-service.drm
 
 PRODUCT_PACKAGES += \
     libEGL_mesa \
