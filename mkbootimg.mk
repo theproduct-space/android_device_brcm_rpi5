@@ -13,7 +13,7 @@ $(RPI_BOOT_OUT): $(INSTALLED_RAMDISK_TARGET)
 	mkdir -p $(RPI_BOOT_OUT)/overlays
 	cp $(DEVICE_PATH)/boot/* $(RPI_BOOT_OUT)
 	cp $(KERNEL_PATH)/Image $(RPI_BOOT_OUT)
-	cp $(KERNEL_PATH)/bcm2712-rpi-*.dtb $(RPI_BOOT_OUT)
+	cp $(KERNEL_PATH)/bcm2712*-rpi-*.dtb $(RPI_BOOT_OUT)
 	cp $(KERNEL_PATH)/overlays/* $(RPI_BOOT_OUT)/overlays
 	cp $(PRODUCT_OUT)/ramdisk.img $(RPI_BOOT_OUT)
 	echo $(BOARD_KERNEL_CMDLINE) > $(RPI_BOOT_OUT)/cmdline.txt
