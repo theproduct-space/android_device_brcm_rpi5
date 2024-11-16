@@ -25,7 +25,6 @@ class NetBluetoothMgmt {
  public:
   NetBluetoothMgmt() {}
   ~NetBluetoothMgmt() {
-    ::close(rfkill_fd_);
     ::close(bt_fd_);
   }
 
@@ -34,13 +33,10 @@ class NetBluetoothMgmt {
 
  private:
   int waitHciDev(int hci_interface);
-  int openRfkill();
-  int rfkill(int block);
+  int findRfKill();
+  int rfKill(int block);
+  char *rfkill_state_;
 
-  // Index of the first rfkill device of type bluetooth.
-  int rfkill_bt_index_{-1};
-  // File descriptor opened to /dev/rfkill.
-  int rfkill_fd_{-1};
   // File descriptor opened to the bluetooth user channel.
   int bt_fd_{-1};
 };

@@ -50,6 +50,9 @@ struct sockaddr_hci {
 #define MGMT_EV_CMD_COMPLETE 0x0001
 #define MGMT_PKT_SIZE_MAX 1024
 #define MGMT_INDEX_NONE 0xFFFF
+#define WRITE_NO_INTR(fn) \
+  do {                  \
+  } while ((fn) == -1 && errno == EINTR)
 
 struct mgmt_pkt {
   uint16_t opcode;
@@ -63,24 +66,6 @@ struct mgmt_ev_read_index_list {
   uint8_t status;
   uint16_t num_controllers;
   uint16_t index[];
-} __attribute__((packed));
-
-// Definitions imported from <linux/rfkill.h>
-#define RFKILL_STATE_SOFT_BLOCKED 0
-#define RFKILL_STATE_UNBLOCKED 1
-#define RFKILL_STATE_HARD_BLOCKED 2
-
-#define RFKILL_TYPE_BLUETOOTH 2
-
-#define RFKILL_OP_ADD 0
-#define RFKILL_OP_CHANGE 2
-
-struct rfkill_event {
-  uint32_t idx;
-  uint8_t type;
-  uint8_t op;
-  uint8_t soft;
-  uint8_t hard;
 } __attribute__((packed));
 
 namespace aidl::android::hardware::bluetooth::impl {
@@ -194,66 +179,49 @@ end:
   return ret;
 }
 
-int NetBluetoothMgmt::openRfkill() {
-  int fd = open("/dev/rfkill", O_RDWR);
+int NetBluetoothMgmt::findRfKill() {
+    char rfkill_type[64];
+    char type[16];
+    int fd, size, i;
+    for(i = 0; rfkill_state_ == NULL; i++)
+    {
+        snprintf(rfkill_type, sizeof(rfkill_type), "/sys/class/rfkill/rfkill%d/type", i);
+        if ((fd = open(rfkill_type, O_RDONLY)) < 0)
+        {
+            ALOGE("open(%s) failed: %s (%d)\n", rfkill_type, strerror(errno), errno);
+            return -1;
+        }
+
+        size = read(fd, &type, sizeof(type));
+        ::close(fd);
+
+        if ((size >= 9) && !memcmp(type, "bluetooth", 9))
+        {
+            ::asprintf(&rfkill_state_, "/sys/class/rfkill/rfkill%d/state", i);
+            break;
+        }
+    }
+    return 0;
+}
+
+int NetBluetoothMgmt::rfKill(int block) {
+  int fd;
+  char on = (block)?'1':'0';
+  if (findRfKill() != 0) return 0;
+
+  fd = open(rfkill_state_, O_WRONLY);
   if (fd < 0) {
-    ALOGE("unable to open /dev/rfkill: %s", strerror(errno));
+    ALOGE( "Unable to open /dev/rfkill");
     return -1;
   }
-
-  if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0) {
-    ALOGE("unable to set rfkill control device to non-blocking: %s",
-          strerror(errno));
+  ssize_t len;
+  WRITE_NO_INTR(len = write(fd, &on, 1));
+  if (len < 0) {
+    ALOGE( "Failed to change rfkill state");
     ::close(fd);
     return -1;
   }
-
-  for (;;) {
-    struct rfkill_event event {};
-    ssize_t res = read(fd, &event, sizeof(event));
-    if (res < 0) {
-      ALOGE("error reading rfkill events: %s", strerror(errno));
-      break;
-    }
-
-    ALOGI("index:%d type:%d op:%d", event.idx, event.type, event.op);
-
-    if (event.op == RFKILL_OP_ADD && event.type == RFKILL_TYPE_BLUETOOTH) {
-      rfkill_bt_index_ = event.idx;
-      rfkill_fd_ = fd;
-      return 0;
-    }
-  }
-
   ::close(fd);
-  return -1;
-}
-
-// Block or unblock Bluetooth.
-int NetBluetoothMgmt::rfkill(int block) {
-  if (rfkill_fd_ == -1) {
-    openRfkill();
-  }
-
-  if (rfkill_fd_ == -1) {
-    ALOGE("rfkill unavailable");
-    return -1;
-  }
-
-  struct rfkill_event event = {
-      .idx = static_cast<uint32_t>(rfkill_bt_index_),
-      .type = RFKILL_TYPE_BLUETOOTH,
-      .op = RFKILL_OP_CHANGE,
-      .soft = static_cast<uint8_t>(block),
-      .hard = 0,
-  };
-
-  int res = write(rfkill_fd_, &event, sizeof(event));
-  if (res < 0) {
-    ALOGE("error writing rfkill command: %s", strerror(errno));
-    return -1;
-  }
-
   return 0;
 }
 
@@ -261,7 +229,8 @@ int NetBluetoothMgmt::openHci(int hci_interface) {
   ALOGI("opening hci interface %d", hci_interface);
 
   // Block Bluetooth.
-  rfkill(1);
+  rfkill_state_ = NULL;
+  rfKill(1);
 
   // Wait for the HCI interface to complete initialization or to come online.
   int hci = waitHciDev(hci_interface);
@@ -302,7 +271,8 @@ void NetBluetoothMgmt::closeHci() {
   }
 
   // Unblock Bluetooth.
-  rfkill(0);
+  rfKill(0);
+  free(rfkill_state_);
 }
 
 }  // namespace aidl::android::hardware::bluetooth::impl
