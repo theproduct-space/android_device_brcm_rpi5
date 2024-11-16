@@ -22,7 +22,6 @@ cc_binary {
         "android.hardware.bluetooth-V1-ndk",
         "libbase",
         "libbinder_ndk",
-        "libcutils",
         "libhidlbase",
         "liblog",
         "libutils",

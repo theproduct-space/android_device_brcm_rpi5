@@ -20,9 +20,6 @@
 #include <aidl/android/hardware/bluetooth/BnBluetoothHci.h>
 #include <aidl/android/hardware/bluetooth/IBluetoothHciCallbacks.h>
 
-#include <future>
-#include <string>
-
 #include "async_fd_watcher.h"
 #include "h4_protocol.h"
 #include "net_bluetooth_mgmt.h"
@@ -34,7 +31,7 @@ class BluetoothDeathRecipient;
 // This Bluetooth HAL implementation connects with a serial port at dev_path_.
 class BluetoothHci : public BnBluetoothHci {
  public:
-  BluetoothHci(const std::string& dev_path = "/dev/hvc5");
+  BluetoothHci();
 
   ndk::ScopedAStatus initialize(
       const std::shared_ptr<IBluetoothHciCallbacks>& cb) override;
@@ -50,10 +47,6 @@ class BluetoothHci : public BnBluetoothHci {
 
   ndk::ScopedAStatus close() override;
 
-  static void OnPacketReady();
-
-  static BluetoothHci* get();
-
  private:
   int mFd{-1};
   std::shared_ptr<IBluetoothHciCallbacks> mCb = nullptr;
@@ -62,18 +55,12 @@ class BluetoothHci : public BnBluetoothHci {
 
   std::shared_ptr<BluetoothDeathRecipient> mDeathRecipient;
 
-  std::string mDevPath;
-
   ::android::hardware::bluetooth::async::AsyncFdWatcher mFdWatcher;
 
-  int getFdFromDevPath();
   [[nodiscard]] ndk::ScopedAStatus send(
       ::android::hardware::bluetooth::hci::PacketType type,
       const std::vector<uint8_t>& packet);
   std::unique_ptr<NetBluetoothMgmt> management_{};
-
-  // Send a reset command and discard all packets until a reset is received.
-  void reset();
 
   // Don't close twice or open before close is complete
   std::mutex mStateMutex;

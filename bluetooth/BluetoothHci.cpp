@@ -19,29 +19,7 @@
 
 #include "BluetoothHci.h"
 
-#include <cutils/properties.h>
-#include <fcntl.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <poll.h>
-#include <string.h>
-#include <sys/uio.h>
-#include <termios.h>
-
 #include "log/log.h"
-
-namespace {
-int SetTerminalRaw(int fd) {
-  termios terminal_settings;
-  int rval = tcgetattr(fd, &terminal_settings);
-  if (rval < 0) {
-    return rval;
-  }
-  cfmakeraw(&terminal_settings);
-  rval = tcsetattr(fd, TCSANOW, &terminal_settings);
-  return rval;
-}
-}  // namespace
 
 using namespace ::android::hardware::bluetooth::hci;
 using namespace ::android::hardware::bluetooth::async;
@@ -50,19 +28,6 @@ using aidl::android::hardware::bluetooth::Status;
 namespace aidl::android::hardware::bluetooth::impl {
 
 void OnDeath(void* cookie);
-
-std::optional<std::string> GetSystemProperty(const std::string& property) {
-  std::array<char, PROPERTY_VALUE_MAX> value_array{0};
-  auto value_len = property_get(property.c_str(), value_array.data(), nullptr);
-  if (value_len <= 0) {
-    return std::nullopt;
-  }
-  return std::string(value_array.data(), value_len);
-}
-
-bool starts_with(const std::string& str, const std::string& prefix) {
-  return str.compare(0, prefix.length(), prefix) == 0;
-}
 
 class BluetoothDeathRecipient {
  public:
@@ -112,90 +77,8 @@ void OnDeath(void* cookie) {
   death_recipient->serviceDied();
 }
 
-BluetoothHci::BluetoothHci(const std::string& dev_path) {
-  char property_bytes[PROPERTY_VALUE_MAX];
-  property_get("vendor.ser.bt-uart", property_bytes, dev_path.c_str());
-  mDevPath = std::string(property_bytes);
+BluetoothHci::BluetoothHci() {
   mDeathRecipient = std::make_shared<BluetoothDeathRecipient>(this);
-}
-
-int BluetoothHci::getFdFromDevPath() {
-  int fd = open(mDevPath.c_str(), O_RDWR);
-  if (fd < 0) {
-    ALOGE("Could not connect to bt: %s (%s)", mDevPath.c_str(),
-          strerror(errno));
-    return fd;
-  }
-  if (int ret = SetTerminalRaw(fd) < 0) {
-    ALOGI("Could not make %s a raw terminal %d(%s)", mDevPath.c_str(), ret,
-          strerror(errno));
-  }
-  return fd;
-}
-
-void BluetoothHci::reset() {
-  // Send a reset command and wait until the command complete comes back.
-
-  std::vector<uint8_t> reset = {0x03, 0x0c, 0x00};
-
-  auto resetPromise = std::make_shared<std::promise<void>>();
-  auto resetFuture = resetPromise->get_future();
-
-  mH4 = std::make_shared<H4Protocol>(
-      mFd,
-      [](const std::vector<uint8_t>& raw_command) {
-        ALOGI("Discarding %d bytes with command type",
-              static_cast<int>(raw_command.size()));
-      },
-      [](const std::vector<uint8_t>& raw_acl) {
-        ALOGI("Discarding %d bytes with acl type",
-              static_cast<int>(raw_acl.size()));
-      },
-      [](const std::vector<uint8_t>& raw_sco) {
-        ALOGI("Discarding %d bytes with sco type",
-              static_cast<int>(raw_sco.size()));
-      },
-      [resetPromise](const std::vector<uint8_t>& raw_event) {
-        std::vector<uint8_t> reset_complete = {0x0e, 0x04, 0x01,
-                                               0x03, 0x0c, 0x00};
-        bool valid = raw_event.size() == 6 &&
-                     raw_event[0] == reset_complete[0] &&
-                     raw_event[1] == reset_complete[1] &&
-                     // Don't compare the number of packets field.
-                     raw_event[3] == reset_complete[3] &&
-                     raw_event[4] == reset_complete[4] &&
-                     raw_event[5] == reset_complete[5];
-        if (valid) {
-          resetPromise->set_value();
-        } else {
-          ALOGI("Discarding %d bytes with event type",
-                static_cast<int>(raw_event.size()));
-        }
-      },
-      [](const std::vector<uint8_t>& raw_iso) {
-        ALOGI("Discarding %d bytes with iso type",
-              static_cast<int>(raw_iso.size()));
-      },
-      [this]() {
-        ALOGI("HCI socket device disconnected while waiting for reset");
-        mFdWatcher.StopWatchingFileDescriptors();
-      });
-  mFdWatcher.WatchFdForNonBlockingReads(mFd,
-                                        [this](int) { mH4->OnDataReady(); });
-
-  ndk::ScopedAStatus result = send(PacketType::COMMAND, reset);
-  if (!result.isOk()) {
-    ALOGE("Error sending reset command");
-  }
-  auto status = resetFuture.wait_for(std::chrono::seconds(1));
-  mFdWatcher.StopWatchingFileDescriptors();
-  if (status == std::future_status::ready) {
-    ALOGI("HCI Reset successful");
-  } else {
-    ALOGE("HCI Reset Response not received in one second");
-  }
-
-  resetPromise.reset();
 }
 
 ndk::ScopedAStatus BluetoothHci::initialize(
@@ -230,30 +113,13 @@ ndk::ScopedAStatus BluetoothHci::initialize(
   if (mFd < 0) {
     management_.reset();
 
-    ALOGI("Unable to open Linux interface, trying default path.");
-    mFd = getFdFromDevPath();
-    if (mFd < 0) {
-      mState = HalState::READY;
-      cb->initializationComplete(Status::UNABLE_TO_OPEN_INTERFACE);
-      return ndk::ScopedAStatus::ok();
-    }
+    ALOGI("Unable to open Linux interface.");
+    mState = HalState::READY;
+    cb->initializationComplete(Status::UNABLE_TO_OPEN_INTERFACE);
+    return ndk::ScopedAStatus::ok();
   }
 
   mDeathRecipient->LinkToDeath(mCb);
-
-  // TODO: HCI Reset on emulators since the bluetooth controller
-  // cannot be powered on/off during the HAL setup; and the stack
-  // might received spurious packets/events during boottime.
-  // Proper solution would be to use bt-virtio or vsock to better
-  // control the link to rootcanal and the controller lifetime.
-  const std::string kBoardProperty = "ro.product.board";
-  const std::string kCuttlefishBoard = "cutf";
-  auto board_name = GetSystemProperty(kBoardProperty);
-  if (board_name.has_value() && (
-        starts_with(board_name.value(), "cutf") ||
-        starts_with(board_name.value(), "goldfish"))) {
-    reset();
-  }
 
   mH4 = std::make_shared<H4Protocol>(
       mFd,
@@ -312,11 +178,7 @@ ndk::ScopedAStatus BluetoothHci::close() {
 
   mFdWatcher.StopWatchingFileDescriptors();
 
-  if (management_) {
-    management_->closeHci();
-  } else {
-    ::close(mFd);
-  }
+  management_->closeHci();
 
   {
     std::lock_guard<std::mutex> guard(mStateMutex);
