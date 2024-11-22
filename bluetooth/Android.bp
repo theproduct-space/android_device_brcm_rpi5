@@ -1,12 +1,22 @@
-package {
-    default_applicable_licenses: ["Android-Apache-2.0"],
-}
+// Copyright (C) 2020 The Android Open Source Project
+// Copyright (C) 2024 KonstaKANG
+//
+// SPDX-License-Identifier: Apache-2.0
 
-cc_defaults {
-    name: "android.hardware.bluetooth-service-build-defaults",
+cc_binary {
+    name: "android.hardware.bluetooth-service.rpi",
+    relative_install_path: "hw",
+    init_rc: ["bluetooth-service-rpi.rc"],
+    vintf_fragments: ["bluetooth-service-rpi.xml"],
+    vendor: true,
     cflags: [
         "-Wall",
         "-Wextra",
+    ],
+    srcs: [
+        "BluetoothHci.cpp",
+        "net_bluetooth_mgmt.cpp",
+        "service.cpp",
     ],
     shared_libs: [
         "android.hardware.bluetooth-V1-ndk",
@@ -21,65 +31,4 @@ cc_defaults {
         "android.hardware.bluetooth.async",
         "android.hardware.bluetooth.hci",
     ],
-}
-
-cc_library_static {
-    name: "libbluetoothhcihalimpl",
-    vendor_available: true,
-    host_supported: true,
-    defaults: ["android.hardware.bluetooth-service-build-defaults"],
-    srcs: [
-        "BluetoothHci.cpp",
-        "net_bluetooth_mgmt.cpp",
-    ],
-}
-
-cc_binary {
-    name: "android.hardware.bluetooth-service.default",
-    relative_install_path: "hw",
-    init_rc: ["bluetooth-service-default.rc"],
-    vintf_fragments: [":manifest_android.hardware.bluetooth-service.default.xml"],
-    vendor: true,
-    defaults: ["android.hardware.bluetooth-service-build-defaults"],
-    srcs: [
-        "service.cpp",
-    ],
-    shared_libs: [
-        "android.hardware.bluetooth-V1-ndk",
-        "libbase",
-        "libbinder_ndk",
-        "libhidlbase",
-        "libutils",
-        "liblog",
-    ],
-    static_libs: [
-        "libbluetoothhcihalimpl",
-    ],
-}
-
-cc_fuzz {
-    name: "android.hardware.bluetooth-service.default_fuzzer",
-    host_supported: true,
-    defaults: ["service_fuzzer_defaults"],
-    srcs: [
-        "test/fuzzer.cpp",
-    ],
-    static_libs: [
-        "android.hardware.bluetooth.async",
-        "android.hardware.bluetooth.hci",
-        "android.hardware.bluetooth-V1-ndk",
-        "libbluetoothhcihalimpl",
-        "liblog",
-    ],
-    fuzz_config: {
-        componentid: 27441,
-        cc: [
-            "mylesgw@google.com",
-        ],
-    },
-}
-
-filegroup {
-    name: "manifest_android.hardware.bluetooth-service.default.xml",
-    srcs: ["bluetooth-service-default.xml"],
 }
