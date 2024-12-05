@@ -30,3 +30,6 @@ dtoverlay=cma,cma-320
 
 # USB
 dtoverlay=dwc2,dr_mode=peripheral
+[cm5]
+dtoverlay=dwc2,dr_mode=otg
+[all]
