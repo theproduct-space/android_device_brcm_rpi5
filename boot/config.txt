@@ -17,6 +17,7 @@ disable_overscan=1
 
 # Graphics acceleration
 dtoverlay=vc4-kms-v3d
+dtoverlay=cma,cma-320
 
 # I2C
 #dtparam=i2c_arm=on
