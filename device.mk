@@ -161,7 +161,7 @@ PRODUCT_COPY_FILES += \
 
 # FFmpeg
 PRODUCT_PACKAGES += \
-    android.hardware.media.c2@1.2-service-ffmpeg
+    android.hardware.media.c2-service-ffmpeg
 
 # Gatekeeper
 PRODUCT_PACKAGES += \
