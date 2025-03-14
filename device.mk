@@ -217,7 +217,7 @@ PRODUCT_COPY_FILES += \
 
 # Lights
 PRODUCT_PACKAGES += \
-    android.hardware.light-service.rpi
+    com.android.hardware.light.rpi5
 
 # Media
 PRODUCT_COPY_FILES += \
