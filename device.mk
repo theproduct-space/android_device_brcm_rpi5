@@ -248,7 +248,7 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/emulated_storage.mk)
 
 # Suspend
 PRODUCT_PACKAGES += \
-    suspend_blocker_rpi
+    com.android.hardware.suspend_blocker.rpi5
 
 # Thermal
 PRODUCT_PACKAGES += \
