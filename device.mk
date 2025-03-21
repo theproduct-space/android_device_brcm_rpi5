@@ -138,7 +138,7 @@ PRODUCT_COPY_FILES += \
 
 # CEC
 PRODUCT_PACKAGES += \
-    android.hardware.tv.hdmi.cec-service.rpi \
+    com.android.hardware.tv.hdmi.cec.rpi5 \
     android.hardware.tv.hdmi.connection-service.rpi
 
 PRODUCT_COPY_FILES += \
