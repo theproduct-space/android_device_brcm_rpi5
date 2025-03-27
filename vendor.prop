@@ -47,7 +47,7 @@ ro.soc.manufacturer=Broadcom
 ro.soc.model=BCM2712
 
 # Display
-debug.drm.mode.force=1920x1080
+debug.drm.mode.force=1280x800
 
 # FFmpeg
 persist.vendor.ffmpeg_codec2.rank.audio=16

@@ -65,6 +65,7 @@ TARGET_NO_RECOVERY := true
 # SELinux
 BOARD_SEPOLICY_DIRS += device/brcm/rpi5/sepolicy
 BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive
+BOARD_KERNEL_CMDLINE += ro.boot.verifiedbootstate=orange
 
 # Treble
 TARGET_COPY_OUT_VENDOR := vendor
