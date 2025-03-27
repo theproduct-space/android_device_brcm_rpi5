@@ -31,7 +31,7 @@ BOARD_LIBCAMERA_PIPELINES := rpi/pisp
 BOARD_LIBCAMERA_USES_MESON_BUILD := true
 
 # Display
-TARGET_SCREEN_DENSITY := 240
+TARGET_SCREEN_DENSITY := 120
 
 # Graphics
 BOARD_MESA3D_BUILD_LIBGBM := true
@@ -72,7 +72,7 @@ TARGET_NO_RECOVERY := true
 # SELinux
 BOARD_SEPOLICY_DIRS += device/brcm/rpi5/sepolicy
 BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive
-BOARD_KERNEL_CMDLINE += ro.boot.verifiedbootstate=orange
+BOARD_KERNEL_CMDLINE += androidboot.verifiedbootstate=orange
 
 # Treble
 TARGET_COPY_OUT_VENDOR := vendor
