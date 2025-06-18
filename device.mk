@@ -250,6 +250,11 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     com.android.hardware.thermal
 
+# Touchscreen support
+PRODUCT_COPY_FILES += \
+    $(DEVICE_PATH)/touchscreen/Goodix_Capacitive_TouchScreen.idc:$(TARGET_COPY_OUT_VENDOR)/usr/idc/Goodix_Capacitive_TouchScreen.idc \
+    frameworks/native/data/etc/android.hardware.touchscreen.multitouch.jazzhand.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.touchscreen.multitouch.jazzhand.xml
+
 # USB
 PRODUCT_PACKAGES += \
     android.hardware.usb-service.example \
