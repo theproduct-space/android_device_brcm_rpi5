@@ -158,6 +158,15 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     com.android.hardware.gatekeeper.nonsecure
 
+ # Raspberry Pi utils
+PRODUCT_PACKAGES += \
+    dtmerge \
+    dtoverlay \
+    pinctrl \
+    vcgencmd \
+    vclog \
+    vcmailbox   
+
 # Graphics
 PRODUCT_PACKAGES += \
     android.hardware.graphics.allocator-service.minigbm_gbm_mesa \
